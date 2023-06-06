@@ -1,0 +1,26 @@
+---
+title: "Project"
+author: "Gabriele Cola - Nicholas LaRosa"
+date: "2023-06-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 0. Library
+
+```{r}
+library(tidyverse)
+```
+
+### 1. Import dataset
+```{r}
+file_path <- "~/Downloads/newlab/Bitcoin_Network/soc-sign-bitcoinotc.csv"
+# Import the CSV file
+data <- read_csv(file_path)
+glimpse(data)
+
+```
+
