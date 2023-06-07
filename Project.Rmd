@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(igraph)
+library(sbm)
 ```
 
 ### 1. Import dataset
@@ -27,10 +28,10 @@ This is the **weighted signed directed network** and we took from here the [data
 
 #### 1.2 Description of features
 
-- **SOURCE**: node id of source (i.e rater)
-- **TARGET**: node id of target (i.e ratee)
-- **RATING**: the source's rating for the target, ranging from -10 to +10 in steps of 1
-- **TIME**:   the time of the rating, measured as seconds since Epoch. 
+-   **SOURCE**: node id of source (i.e rater)
+-   **TARGET**: node id of target (i.e ratee)
+-   **RATING**: the source's rating for the target, ranging from -10 to +10 in steps of 1
+-   **TIME**: the time of the rating, measured as seconds since Epoch.
 
 ```{r}
 file_path <- "~/Downloads/newlab/Bitcoin_Network/soc-sign-bitcoinotc.csv"
@@ -44,35 +45,35 @@ column_names <- c("SOURCE", "TARGET", "RATING", "TIME")
 colnames(data) <- column_names
 glimpse(data)
 
+
+# Question1: There is also the opportunity to some advacned stuff with edge and vertex?
 summary(data)
 
-# we have to pre-process the time?
+# Question2: we have to pre-process the time?
 
 ```
 
 This graph is **weighted** and **directed**
-
 
 ### 2. Network Sampling
 
 After or before we have to compute the network summary?
 
 ```{r}
-# we have to put directed F or T ?
+# Question 3:  we have to put directed= T because our graph is directed ?
 g<- graph_from_data_frame(data)#directed=FALSE)
 n<- 500
 gs<- induced_subgraph(g,sample(V(g),n))
 ```
 
-
 ### 3. Network Mapping
+
 ```{r}
-# Which plot use?
 plot(gs)
 plot(gs, layout = layout.circle)
 ```
 
-### 4.Network Charaterization
+### 4. Network Charaterization
 
 Comment on the results
 
@@ -86,10 +87,32 @@ b<- betweenness(g)
 plot(s,b)
 ```
 
-
 ### 5. Network Models
 
-```{r}
 
+```{r}
+am<- as_adjacency_matrix(gs,sparse=FALSE)
+# Question 4: Which models we have to adopt it the Exponential family or the Latent Variable?
+# Question 5:  Stochastic Block model: How to interpret it?
+gm<- sbm :: estimateSimpleSBM(am,model='poisson')
 ```
+
+### Community detection
+
+It si adopted a **fast greedy algorithm** that find a community inside the graph optimizing the **modularity**.
+
+**The modularity** is the difference between the number of edges and the number of expected edges in the case it was random:
+ - If it is **positive** there is a chance that there is a community
+ - If it is **equal** to 0, it says that the edge are casual
+ - If it is **negative**, there is no community
+ 
+
+
+```{r}
+# It doesn't work out
+cluster_fast_greedy(gs)
+```
+
+
+
 
