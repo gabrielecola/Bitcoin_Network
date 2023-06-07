@@ -13,14 +13,73 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(igraph)
 ```
 
 ### 1. Import dataset
+
+#### 1.1 Description of dataset
+
+This is who-trusts-whom network of people who trade using **Bitcoin** on a platform called **Bitcoin Alpha**.\
+Since Bitcoin users are **anonymous**, there is a need to maintain a record of users' reputation to prevent transactions with fraudulent and risky users.\
+Members of Bitcoin Alpha rate other members in a scale of -10 (total distrust) to +10 (total trust) in steps of 1.\
+This is the **weighted signed directed network** and we took from here the [dataset](%22https://snap.stanford.edu/data/soc-sign-bitcoin-alpha.html%22)
+
+#### 1.2 Description of features
+
+- **SOURCE**: node id of source (i.e rater)
+- **TARGET**: node id of target (i.e ratee)
+- **RATING**: the source's rating for the target, ranging from -10 to +10 in steps of 1
+- **TIME**:   the time of the rating, measured as seconds since Epoch. 
+
 ```{r}
 file_path <- "~/Downloads/newlab/Bitcoin_Network/soc-sign-bitcoinotc.csv"
 # Import the CSV file
-data <- read_csv(file_path)
+data <- read.csv(file_path, header = FALSE)
+
+# Define custom column names
+column_names <- c("SOURCE", "TARGET", "RATING", "TIME")
+
+# Assign column names to the data frame
+colnames(data) <- column_names
 glimpse(data)
+
+summary(data)
+
+# we have to pre-process the time?
 
 ```
 
+This graph is **weighted** and **directed**
+
+
+### 2. Network sampling
+
+After or before we have to compute the network summary?
+
+```{r}
+# we have to put directed F or T ?
+g<- graph_from_data_frame(data)#directed=FALSE)
+n<- 500
+gs<- induced_subgraph(g,sample(V(g),n))
+
+
+
+# Which plot use?
+plot(gs)
+plot(gs, layout = layout.circle)
+```
+
+### 3.  Network Charaterization
+
+Comment on the results
+
+```{r}
+hist(degree(gs))
+#degree_dist <- degree_distribution(gs)
+clustering_coefficient <- transitivity(gs, type = "local")
+
+s<- graph.strength(g)
+b<- betweenness(g)
+plot(s,b)
+```
