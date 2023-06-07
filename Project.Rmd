@@ -87,7 +87,7 @@ plot(s,b)
 ```
 
 
-### 5. Network Mapping 
+### 5. Network Models
 
 ```{r}
 
