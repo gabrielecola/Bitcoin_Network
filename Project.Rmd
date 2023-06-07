@@ -53,7 +53,7 @@ summary(data)
 This graph is **weighted** and **directed**
 
 
-### 2. Network sampling
+### 2. Network Sampling
 
 After or before we have to compute the network summary?
 
@@ -62,15 +62,17 @@ After or before we have to compute the network summary?
 g<- graph_from_data_frame(data)#directed=FALSE)
 n<- 500
 gs<- induced_subgraph(g,sample(V(g),n))
+```
 
 
-
+### 3. Network Mapping
+```{r}
 # Which plot use?
 plot(gs)
 plot(gs, layout = layout.circle)
 ```
 
-### 3.  Network Charaterization
+### 4.Network Charaterization
 
 Comment on the results
 
@@ -83,3 +85,11 @@ s<- graph.strength(g)
 b<- betweenness(g)
 plot(s,b)
 ```
+
+
+### 5. Network Mapping 
+
+```{r}
+
+```
+
