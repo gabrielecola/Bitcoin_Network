@@ -74,6 +74,7 @@ summary_df <- data.frame(
 ggplot(summary_df, aes(x = Statistic, y = Value)) +
   geom_bar(stat = "identity", fill = "skyblue") +
   labs(x = "", y = "Value") +
+  ylim(0,40000)+
   ggtitle("Summary Statistics of Graph") +
   theme_minimal()
 
@@ -103,7 +104,6 @@ ggplot(degree_df, aes(x = Degree, y = Frequency)) +
 TO do
 - change the eigen vector or add the clustering coefficients
 - fix the graph
-
 ```{r}
 
 # Calculate centrality measures
@@ -139,6 +139,7 @@ ggplot(centrality_df_long, aes(x = Node, y = Value, fill = Measure)) +
 ### 3. Network Sampling
 
 ```{r}
+# - Decide which sampling strategies adopt
 n<- 500
 gs<- induced_subgraph(g,sample(V(g),n))
 
@@ -151,10 +152,19 @@ plot(gs, layout = layout.circle)
 
 
 ### 4. Network Models
+Exponential Family Regression (EFR) can we use to understand the relationship between **time** and **transaction**
 
 ```{r}
+
+```
+
+
+
+#### 4.2 Community detection
+
+Stochastic block model to capture community detection
+```{r}
 am<- as_adjacency_matrix(gs,sparse=FALSE)
-# Question 4: Which models we have to adopt it the Exponential family or the Latent Variable?
 # Question 5:  Stochastic Block model: How to interpret it?
 gm<- sbm :: estimateSimpleSBM(am,model='poisson')
 ```
