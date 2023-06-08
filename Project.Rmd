@@ -11,20 +11,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### 0. Library
 
-```{r}
+```{r message=FALSE}
 library(tidyverse)
 library(igraph)
 library(sbm)
+library(tibble)
 ```
 
 ### 1. Import dataset
 
 #### 1.1 Description of dataset
 
-This is who-trusts-whom network of people who trade using **Bitcoin** on a platform called **Bitcoin Alpha**.\
+This is who-trusts-whom network of people who trade using **Bitcoin** on a platform called **Bitcoin OTC**.\
 Since Bitcoin users are **anonymous**, there is a need to maintain a record of users' reputation to prevent transactions with fraudulent and risky users.\
 Members of Bitcoin Alpha rate other members in a scale of -10 (total distrust) to +10 (total trust) in steps of 1.\
-This is the **weighted signed directed network** and we took from here the [dataset](%22https://snap.stanford.edu/data/soc-sign-bitcoin-alpha.html%22)
+This is the **weighted signed directed network** and we took the [dataset](https://snap.stanford.edu/data/soc-sign-bitcoin-otc.html) from here
 
 #### 1.2 Description of features
 
@@ -45,54 +46,125 @@ column_names <- c("SOURCE", "TARGET", "RATING", "TIME")
 colnames(data) <- column_names
 glimpse(data)
 
-
-# Question1: There is also the opportunity to some advacned stuff with edge and vertex?
+# Question: we have to pre-process the time?
 summary(data)
 
-# Question2: we have to pre-process the time?
+# Transform it to the graph
+# Question 2:  we have to put directed= T because our graph is directed ?
+g<- graph_from_data_frame(data)#directed=FALSE)
 
 ```
 
-This graph is **weighted** and **directed**
-
-### 2. Network Sampling
-
-After or before we have to compute the network summary?
+### 2. Exploratory Data Analysis
 
 ```{r}
-# Question 3:  we have to put directed= T because our graph is directed ?
-g<- graph_from_data_frame(data)#directed=FALSE)
+# Calculate average number of nodes and edges
+avg_nodes <- mean(vcount(g))
+avg_edges <- mean(ecount(g))
+
+
+# Create data frame for plotting
+summary_df <- data.frame(
+  Statistic = c("Average number of nodes", "Average number of edges"),
+  Value = c(avg_nodes, avg_edges)
+)
+
+
+# Plotting
+ggplot(summary_df, aes(x = Statistic, y = Value)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "", y = "Value") +
+  ylim(0,40000)+
+  ggtitle("Summary Statistics of Graph") +
+  theme_minimal()
+
+```
+
+
+```{r warning= FALSE}
+# Calculate the degree distribution
+degree_dist <- degree_distribution(g)
+
+# Create a data frame for plotting
+degree_df <- data.frame(
+  Degree = 0:(length(degree_dist)-1),
+  Frequency = degree_dist
+)
+
+# Plot the degree distribution
+ggplot(degree_df, aes(x = Degree, y = Frequency)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Degree", y = "Frequency") +
+  xlim(0,100)+
+  ggtitle("Degree Distribution") +
+  theme_minimal()
+```
+
+
+TO do
+- change the eigen vector or add the clustering coefficients
+- fix the graph
+```{r}
+
+# Calculate centrality measures
+degree_cen <- degree(g, mode = "all")
+closeness_cen <- closeness(g, mode = "all")
+betweenness_cen <- betweenness(g, directed = FALSE)
+eigenvector_cen <- eigen_centrality(g)$vector
+
+# Create a data frame for plotting
+centrality_df <- data.frame(
+  Node = 1:vcount(g),
+  Degree = degree_cen,
+  Closeness = closeness_cen,
+  Betweenness = betweenness_cen,
+  Eigenvector = eigenvector_cen
+)
+
+# Reshape data for plotting
+centrality_df_long <- pivot_longer(centrality_df, cols = -Node, names_to = "Measure", values_to = "Value")
+
+# Plot centrality measures
+ggplot(centrality_df_long, aes(x = Node, y = Value, fill = Measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Node", y = "Centrality Value") +
+  ggtitle("Centrality Measures") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1")
+
+
+```
+
+
+### 3. Network Sampling
+
+```{r}
+# - Decide which sampling strategies adopt
 n<- 500
 gs<- induced_subgraph(g,sample(V(g),n))
-```
 
-### 3. Network Mapping
 
-```{r}
+# Plot 
 plot(gs)
 plot(gs, layout = layout.circle)
 ```
 
-### 4. Network Charaterization
 
-Comment on the results
+
+### 4. Network Models
+Exponential Family Regression (EFR) can we use to understand the relationship between **time** and **transaction**
 
 ```{r}
-hist(degree(gs))
-#degree_dist <- degree_distribution(gs)
-clustering_coefficient <- transitivity(gs, type = "local")
 
-s<- graph.strength(g)
-b<- betweenness(g)
-plot(s,b)
 ```
 
-### 5. Network Models
 
 
+#### 4.2 Community detection
+
+Stochastic block model to capture community detection
 ```{r}
 am<- as_adjacency_matrix(gs,sparse=FALSE)
-# Question 4: Which models we have to adopt it the Exponential family or the Latent Variable?
 # Question 5:  Stochastic Block model: How to interpret it?
 gm<- sbm :: estimateSimpleSBM(am,model='poisson')
 ```
@@ -101,18 +173,9 @@ gm<- sbm :: estimateSimpleSBM(am,model='poisson')
 
 It si adopted a **fast greedy algorithm** that find a community inside the graph optimizing the **modularity**.
 
-**The modularity** is the difference between the number of edges and the number of expected edges in the case it was random:
- - If it is **positive** there is a chance that there is a community
- - If it is **equal** to 0, it says that the edge are casual
- - If it is **negative**, there is no community
- 
-
+**The modularity** is the difference between the number of edges and the number of expected edges in the case it was random: - If it is **positive** there is a chance that there is a community - If it is **equal** to 0, it says that the edge are casual - If it is **negative**, there is no community
 
 ```{r}
 # It doesn't work out
-cluster_fast_greedy(gs)
+#cluster_fast_greedy(gs)
 ```
-
-
-
-
