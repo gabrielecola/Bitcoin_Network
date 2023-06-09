@@ -16,6 +16,8 @@ library(tidyverse)
 library(igraph)
 library(sbm)
 library(tibble)
+library(janitor)
+library(patchwork)
 ```
 
 ### 1. Import dataset
@@ -44,65 +46,86 @@ column_names <- c("SOURCE", "TARGET", "RATING", "TIME")
 
 # Assign column names to the data frame
 colnames(data) <- column_names
-glimpse(data)
 
-# Question: we have to pre-process the time?
-summary(data)
+# Transform the time and drop the variable Time that was in epoch
+df <- data %>%
+  mutate(time = as.POSIXct(TIME, origin = "1970-01-01")) %>% select(-TIME) %>% clean_names(case='snake')
+
+glimpse(df)
+summary(df)
 
 # Transform it to the graph
-# Question 2:  we have to put directed= T because our graph is directed ?
-g<- graph_from_data_frame(data)#directed=FALSE)
+g<- graph_from_data_frame(df,directed=TRUE)
 
 ```
+
 
 ### 2. Exploratory Data Analysis
 
+
 ```{r}
-# Calculate average number of nodes and edges
-avg_nodes <- mean(vcount(g))
-avg_edges <- mean(ecount(g))
-
-
-# Create data frame for plotting
-summary_df <- data.frame(
-  Statistic = c("Average number of nodes", "Average number of edges"),
-  Value = c(avg_nodes, avg_edges)
-)
-
-
-# Plotting
-ggplot(summary_df, aes(x = Statistic, y = Value)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "", y = "Value") +
-  ylim(0,40000)+
-  ggtitle("Summary Statistics of Graph") +
-  theme_minimal()
-
-```
-
-
-```{r warning= FALSE}
-# Calculate the degree distribution
-degree_dist <- degree_distribution(g)
+# Get the number of nodes and edges
+num_nodes <- vcount(g)
+num_edges <- ecount(g)
 
 # Create a data frame for plotting
-degree_df <- data.frame(
-  Degree = 0:(length(degree_dist)-1),
-  Frequency = degree_dist
-)
+count_df <- data.frame(Measure = c("Number of Nodes", "Number of Edges"),
+                       Value = c(num_nodes, num_edges),
+                       Color = c("skyblue","steelblue"))
+
+# Plot the number of nodes and edges with custom colors for each bar
+ggplot(count_df, aes(x = Measure, y = Value, fill = Color)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL, y = "Count", title = "Number of Nodes and Edges") +
+  theme_minimal() +
+  scale_fill_manual(values = unique(count_df$Color),
+                    labels = count_df$Value) +
+  scale_y_continuous(limits = c(0, 40000), breaks = seq(0, 40000, by = 5000))+
+  labs(fill = "Count")
+
+```
+
+
+
+```{r warning=FALSE}
+# Calculate weighted in-degree or out-degree
+degree <- strength(g, mode = "in")
+
+# Create a data frame for plotting
+degree_df <- data.frame(Degree = degree)
 
 # Plot the degree distribution
-ggplot(degree_df, aes(x = Degree, y = Frequency)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "Degree", y = "Frequency") +
-  xlim(0,100)+
-  ggtitle("Degree Distribution") +
+degree_in<- ggplot(degree_df, aes(x = Degree)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(x = "Degree", y = "Frequency", title = "Degree In Distribution") +
+  xlim(0,75)
   theme_minimal()
+  
+  
+  
+  
+degree2 <- strength(g, mode = "out")
+
+# Create a data frame for plotting
+degree_df_2 <- data.frame(Degree = degree2)
+
+# Plot the degree distribution
+degree_out<- ggplot(degree_df_2, aes(x = Degree)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(x = "Degree", y = "", title = "Degree Out Distribution") +
+  xlim(0,75)
+  theme_minimal()
+  
+  
+  
+degree_in + degree_out
 ```
+
+
 
 
 TO do
-- change the eigen vector or add the clustering coefficients
+- change the eigen vector with page rank
 - fix the graph
 ```{r}
 
