@@ -16,6 +16,14 @@ library(tidyverse)
 library(igraph)
 library(sbm)
 library(tibble)
+library(janitor)
+library(patchwork)
+library(sand)
+library(ggplot2)
+library(gridExtra)
+
+
+set.seed(20230605)
 ```
 
 ### 1. Import dataset
@@ -44,138 +52,269 @@ column_names <- c("SOURCE", "TARGET", "RATING", "TIME")
 
 # Assign column names to the data frame
 colnames(data) <- column_names
-glimpse(data)
 
-# Question: we have to pre-process the time?
-summary(data)
+# Transform the time and drop the variable Time that was in epoch
+df <- data %>%
+  mutate(time = as.POSIXct(TIME, origin = "1970-01-01")) %>% select(-TIME) %>% clean_names(case='snake')
+
+glimpse(df)
+summary(df)
 
 # Transform it to the graph
-# Question 2:  we have to put directed= T because our graph is directed ?
-g<- graph_from_data_frame(data)#directed=FALSE)
+g<- graph_from_data_frame(df,directed=TRUE)
 
 ```
+
 
 ### 2. Exploratory Data Analysis
 
+
 ```{r}
-# Calculate average number of nodes and edges
-avg_nodes <- mean(vcount(g))
-avg_edges <- mean(ecount(g))
+# Get the number of nodes and edges
+num_nodes <- vcount(g)
+num_edges <- ecount(g)
 
+# Create a data frame for plotting
+count_df <- data.frame(Measure = c("Number of Nodes", "Number of Edges"),
+                       Value = c(num_nodes, num_edges),
+                       Color = c("skyblue","steelblue"))
 
-# Create data frame for plotting
-summary_df <- data.frame(
-  Statistic = c("Average number of nodes", "Average number of edges"),
-  Value = c(avg_nodes, avg_edges)
-)
-
-
-# Plotting
-ggplot(summary_df, aes(x = Statistic, y = Value)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "", y = "Value") +
-  ylim(0,40000)+
-  ggtitle("Summary Statistics of Graph") +
-  theme_minimal()
+# Plot the number of nodes and edges with custom colors for each bar
+ggplot(count_df, aes(x = Measure, y = Value, fill = Color)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL, y = "Count", title = "Number of Nodes and Edges") +
+  theme_minimal() +
+  scale_fill_manual(values = unique(count_df$Color),
+                    labels = count_df$Value) +
+  scale_y_continuous(limits = c(0, 40000), breaks = seq(0, 40000, by = 5000))+
+  labs(fill = "Count")
 
 ```
 
 
-```{r warning= FALSE}
-# Calculate the degree distribution
-degree_dist <- degree_distribution(g)
+
+```{r warning= FALSE ,results='hide'}
+# Calculate weighted in-degree 
+degree <- strength(g, mode = "in")
 
 # Create a data frame for plotting
-degree_df <- data.frame(
-  Degree = 0:(length(degree_dist)-1),
-  Frequency = degree_dist
-)
+degree_df <- data.frame(Degree = degree)
 
 # Plot the degree distribution
-ggplot(degree_df, aes(x = Degree, y = Frequency)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "Degree", y = "Frequency") +
-  xlim(0,100)+
-  ggtitle("Degree Distribution") +
+degree_in<- ggplot(degree_df, aes(x = Degree)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(x = "Degree", y = "Frequency", title = "Degree In Distribution") +
+  xlim(0,75)
   theme_minimal()
-```
-
-
-TO do
-- change the eigen vector or add the clustering coefficients
-- fix the graph
-```{r}
-
-# Calculate centrality measures
-degree_cen <- degree(g, mode = "all")
-closeness_cen <- closeness(g, mode = "all")
-betweenness_cen <- betweenness(g, directed = FALSE)
-eigenvector_cen <- eigen_centrality(g)$vector
+  
+  
+  
+# Calculate weighted out-degree
+degree2 <- strength(g, mode = "out")
 
 # Create a data frame for plotting
-centrality_df <- data.frame(
-  Node = 1:vcount(g),
-  Degree = degree_cen,
-  Closeness = closeness_cen,
-  Betweenness = betweenness_cen,
-  Eigenvector = eigenvector_cen
-)
+degree_df_2 <- data.frame(Degree = degree2)
 
-# Reshape data for plotting
-centrality_df_long <- pivot_longer(centrality_df, cols = -Node, names_to = "Measure", values_to = "Value")
-
-# Plot centrality measures
-ggplot(centrality_df_long, aes(x = Node, y = Value, fill = Measure)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "Node", y = "Centrality Value") +
-  ggtitle("Centrality Measures") +
-  theme_minimal() +
-  scale_fill_brewer(palette = "Set1")
-
-
+# Plot the degree distribution
+degree_out<- ggplot(degree_df_2, aes(x = Degree)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(x = "Degree", y = "", title = "Degree Out Distribution") +
+  xlim(0,75)
+  theme_minimal()
+  
+  
+# merging the two graphs
+degree_in + degree_out
 ```
+
+
 
 
 ### 3. Network Sampling
 
-```{r}
-# - Decide which sampling strategies adopt
-n<- 500
-gs<- induced_subgraph(g,sample(V(g),n))
+
+Overall, this code takes a graph, samples a subset of vertices, calculates the degree distributions of the original and subgraph, fits GLMs to both distributions, and creates a plot with the degree and frequency on logarithmic scales, along with lines representing the fitted models.
+
+```{r echo=FALSE}
+# ***This function takes a graph g as input and calculates the degree distribution of the graph*** 
+degree_dist <- function (g) {
+  fd <- table(degree(g)) # This line calculates the frequency of each degree in the graph
+  d <- as.numeric(names(fd)) + 1 # degree + 1
+  list(d = d, fd = fd) #  the function creates a list with two elements: f and d
+}
+```
 
 
-# Plot 
-plot(gs)
-plot(gs, layout = layout.circle)
+```{r include=FALSE}
+n <- 500
+gs <- induced_subgraph(g, sample(V(g), n))
+
+dd0 <- degree_dist(g)
+m0 <- glm(fd~ log(d), family = poisson, data = dd0)
+with(dd0, plot(log(d), log(fd)));
+abline(a =  m0$coef[1], b = m0$coef[2])
+
+
+dd1 <- degree_dist(gs)
+m1 <- glm(fd~ log(d), family = poisson, data = dd1)
+with(dd1, points(log(d), log(fd),pch=19));
+abline(a =  m1$coef[1], b = m1$coef[2])
+
 ```
 
 
 
-### 4. Network Models
-Exponential Family Regression (EFR) can we use to understand the relationship between **time** and **transaction**
+```{r warning=FALSE}
 
-```{r}
+n_values <- c(500, 1000, 1500,2000)
+
+plots <- lapply(n_values, function(n) {
+  gs <- induced_subgraph(g, sample(V(g), n))
+
+  dd0 <- degree_dist(g)
+  dd0 <- as.data.frame(dd0)  # Convert to data frame
+  m0 <- glm(fd.Freq ~ log(d), family = poisson, data = dd0)
+
+  dd1 <- degree_dist(gs)
+  dd1 <- as.data.frame(dd1)  # Convert to data frame
+  m1 <- glm(fd.Freq ~ log(d), family = poisson, data = dd1)
+
+  # Combine the data frames
+  combined_data <- rbind(
+    transform(dd0, graph = "Original Graph"),
+    transform(dd1, graph = "Subgraph")
+  )
+
+  # Extract coefficients
+  coefficients <- data.frame(
+    graph = c("Original Graph", "Subgraph"),
+    intercept = c(coef(m0)[1], coef(m1)[1]),
+    slope = c(coef(m0)[2], coef(m1)[2])
+  )
+
+  # Plot with lines and points
+  p <- ggplot(combined_data, aes(x = log(d), y = log(fd.Freq), color = graph)) +
+    geom_point(shape = 19) +
+    geom_abline(aes(intercept = intercept, slope = slope, linetype = graph), data = coefficients) +
+    labs(x = "log(d)", y = "log(fd)", color = "Graph") +
+    ggtitle(paste("Degree Distribution n =", n, ""))+
+    theme(plot.title = element_text(size = 9))
+  
+  # Return the plot
+  return(p)
+})
+
+# Combine the plots in a 2x2 matrix
+# Display the combined plot
+plot_combined <- grid.arrange(grobs = plots, ncol = 2)
+
+```
+
+
+We can reasonably think that the line of subgraph is **lower** than the line of original graph because there is a count of degree.
+Furthermore, they are almost **parallel** so this means that we a good estimates of exponent, but we want to see the **variability** in the **sampling process**.
+
+
+
+```{r include=FALSE}
+ns<- 500
+s<- replicate(ns, {
+  dd <- degree_dist(induced_subgraph(g,sample(V(g),n)))
+  -glm(fd ~ log(d),family= poisson,data= dd)$coef[2]
+  
+})
+
+alpha_hat<- -m0$coef[2]
+hist(s)
+abline(v= alpha_hat,col="red")
 
 ```
 
 
 
-#### 4.2 Community detection
+```{r warning=FALSE}
 
-Stochastic block model to capture community detection
-```{r}
-am<- as_adjacency_matrix(gs,sparse=FALSE)
-# Question 5:  Stochastic Block model: How to interpret it?
-gm<- sbm :: estimateSimpleSBM(am,model='poisson')
+n_values <- c(500, 1000, 1500, 2000)
+
+plots <- lapply(n_values, function(n) {
+  s <- replicate(ns, {
+    dd <- degree_dist(induced_subgraph(g, sample(V(g), n)))
+    -glm(fd ~ log(d), family = poisson, data = dd)$coef[2]
+  })
+
+  alpha_hat <- -m0$coef[2]
+
+  # Create a data frame for the histogram
+  hist_data <- data.frame(s = s)
+
+  # Plot the histogram with a vertical line
+  p <- ggplot(hist_data, aes(x = s)) +
+    geom_histogram(bins = 30, fill = "lightblue", color = "black", alpha = 0.5) +
+    geom_vline(xintercept = alpha_hat, color = "red", linetype = "dashed", size = 1.2) +
+    labs(x = "Coefficient Value (s)", y = "Frequency") +
+    ggtitle(paste("Histogram of Coefficient Values (n =", n, ")")) +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 10))  # Adjust the size of the title text
+  
+  # Return the plot
+  return(p)
+})
+
+# Combine the plots in a 2x2 matrix
+# Display the combined plot
+plot_combined <- grid.arrange(grobs = plots, ncol = 2)
+
+
 ```
 
-### Community detection
+We can see when we increase n , firstly they over estimate the value and after understimate the values
 
-It si adopted a **fast greedy algorithm** that find a community inside the graph optimizing the **modularity**.
 
-**The modularity** is the difference between the number of edges and the number of expected edges in the case it was random: - If it is **positive** there is a chance that there is a community - If it is **equal** to 0, it says that the edge are casual - If it is **negative**, there is no community
+### 4. Community Detection
+
+When it comes to community detection in directed graphs, the Walktrap algorithm becomes a valuable tool. While other popular methods like the **Fast Greedy algorithm** are effective for community detection in undirected graphs, they may encounter limitations when applied to directed graphs in certain scenarios.
+
+The **Walktrap algorithm** offers an alternative approach that overcomes this limitation, allowing us to discover communities within directed graphs. By leveraging random walks on the graph, the Walktrap algorithm identifies densely connected regions that represent distinct communities.
+
+One crucial aspect of community detection is measuring the quality of identified communities. Modularity is a widely adopted metric for evaluating the strength of community structures. Modularity assesses the difference between the observed edge density within communities and the expected edge density in a random network. A higher modularity score indicates a more significant community structure.
+
+By employing the Walktrap algorithm, which is compatible with directed graphs, we can uncover communities in complex network structures, providing insights into relationships, information flow, and hierarchical organization. Additionally, evaluating the modularity of detected communities enables us to assess the significance and strength of community structures within the graph.
+
+
+
+Yes, it is normal for the modularity to decrease as the value of `n` increases in many cases. Modularity measures the quality of the community structure within a graph. It quantifies the degree to which the number of edges within communities exceeds the number of edges expected in a random graph with the same degree distribution.
+
+When the value of `n` increases, it implies that the subgraph being analyzed is larger and potentially more connected. As the subgraph becomes more connected, it may become more difficult to identify distinct communities, leading to a decrease in modularity.
+
+Additionally, the resolution of community detection algorithms can also play a role. Some algorithms, including the Walktrap algorithm, may struggle to identify smaller communities or fine-grained structures within larger and more densely connected graphs. This can result in a decrease in modularity as the graph size increases.
+
+However, it's important to note that the relationship between modularity and graph size can vary depending on the specific characteristics of the graph, the community detection algorithm used, and the underlying community structure. So, while a decrease in modularity with increasing `n` is common, it may not hold true for all cases.
 
 ```{r}
-# It doesn't work out
-#cluster_fast_greedy(gs)
+set.seed(1,2,3)
+# Set graphical parameters for the plot
+par(mfrow = c(1, 2), mar = c(5, 4, 1, 2) + 0.1)
+
+# Loop through different values of n
+for (n in c(500, 1000)) {
+  # Generate the subgraph
+  gs <- induced_subgraph(g, sample(V(g), n))
+  
+  # Perform community detection
+  community <- walktrap.community(gs)
+  
+  # Compute modularity
+  mod <- modularity(community)
+  
+  # Create the plot with Fruchterman-Reingold layout
+  plot_title <- paste("n =", n, "   Modularity =", round(mod, 2))
+  plot(community, gs, vertex.label = NA, vertex.size = 5, layout = layout_with_fr, main = plot_title)
+}
+
 ```
+
+
+
+
+
+
