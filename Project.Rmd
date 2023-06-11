@@ -173,7 +173,7 @@ In the case of the in-degree distribution, it is evident that nodes with a lower
 Regarding the out-degree distribution, a distinct pattern emerges. Nodes with a lower out-degree, including those with an out-degree of 0, exhibit the highest frequency. In contrast, nodes with a higher out-degree are less frequently encountered.
 
 
-### 2.2 Estimating Power Laws of Degree Centrality
+#### 2.2 Estimating Power Laws of Degree Centrality
 A regression analysis is performed on the degree distribution data, in-degree and out-degree respectively.
 
 ```{r}
@@ -336,7 +336,7 @@ gridExtra::grid.arrange(plot_in_degree, plot_out_degree, ncol = 2)
 
 ```
 
-### 2.4 Important Users
+#### 2.4 Important Users
 
 After summarizing the network, let's now identify important actors in it.
 Let's compute the **betweenness centrality** for each node in the network, considering the directed nature of the graph and using the weights assigned to the edges.
@@ -586,5 +586,7 @@ for (n in c(500, 1000)) {
 
 ```
 
-
 We can spot from the two graph, especially when `n` = 1000 , a community. Furthermore, we can see , as we expected when we increase `n` the modularity decrease.
+
+
+
