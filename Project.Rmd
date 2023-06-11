@@ -123,6 +123,300 @@ degree_out<- ggplot(degree_df_2, aes(x = Degree)) +
 degree_in + degree_out
 ```
 
+
+#### 2.1 In-Degree and Out-Degree Centrality
+
+In a directed network, the in-degree centrality and out-degree centrality measures capture different aspects of node connectivity and interactions:
+
+\* **In-Degree Centrality**: In-Degree centrality measures the number of incoming edges that a node receives from others in the network.
+
+\* **Out-Degree Centrality**: Out-Degree centrality measures the number of outgoing edges or connections that a node initiates towards other nodes in the network.
+
+```{r include=FALSE}
+in_degree_dist <- function (g) {
+  fd_in <- table(degree(g, mode = "in"))
+  d_in <- as.numeric(names(fd_in)) + 1 # degree + 1
+  list(d_in = d_in, fd_in = fd_in)
+}
+
+out_degree_dist <- function (g) {
+  fd_out <- table(degree(g, mode = "out"))
+  d_out <- as.numeric(names(fd_out)) + 1 # degree + 1
+  list(d_out = d_out, fd_out = fd_out)
+}
+```
+
+
+
+```{r}
+# Calculate in-degree and out-degree distributions
+dd_in <- in_degree_dist(g)
+dd_out <- out_degree_dist(g)
+
+# Set graphical parameters for the plot
+par(mfrow = c(1, 2), mar = c(5, 4, 1, 2) + 0.1)
+
+# Plot in-degree distribution
+plot(log(dd_in$d_in), log(dd_in$fd_in), main = "In-Degree Distribution",
+     xlab = "In-Degree", ylab = "Frequency")
+text(log(dd_in$d_in), log(dd_in$fd_in), labels = names(dd_in$fd_in), pos = 3)
+
+# Plot out-degree distribution
+plot(log(dd_out$d_out), log(dd_out$fd_out), main = "Out-Degree Distribution",
+     xlab = "Out-Degree", ylab = "Frequency")
+text(log(dd_out$d_out), log(dd_out$fd_out), labels = names(dd_out$fd_out), pos = 3)
+
+```
+
+In the case of the in-degree distribution, it is evident that nodes with a lower in-degree are more prevalent, while nodes with a higher in-degree are less common. Notably, an exception to this trend is observed for nodes with an in-degree of 0, which have a relatively low frequency.
+
+Regarding the out-degree distribution, a distinct pattern emerges. Nodes with a lower out-degree, including those with an out-degree of 0, exhibit the highest frequency. In contrast, nodes with a higher out-degree are less frequently encountered.
+
+
+### 2.2 Estimating Power Laws of Degree Centrality
+A regression analysis is performed on the degree distribution data, in-degree and out-degree respectively.
+
+```{r}
+library(gridExtra)
+
+# Convert dd_in list to data frame
+dd_in_df <- as.data.frame(dd_in)
+
+# Fit linear regression model
+m0 <- lm(log(fd_in.Freq) ~ log(d_in), data = dd_in_df)
+# Fit Poisson regression model
+m1 <- glm(fd_in.Freq ~ log(d_in), family = poisson, data = dd_in_df)
+
+# Create scatter plot for in-degree distribution
+p1 <- ggplot(dd_in_df, aes(x = log(d_in), y = log(fd_in.Freq))) +
+  geom_point() +
+  labs(x = "In-Degree", y = "Frequency") +
+  ggtitle("In-Degree Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_abline(aes(intercept = m0$coef[1], slope = m0$coef[2], color = "Linear"), show.legend = TRUE) +
+  geom_abline(aes(intercept = m1$coef[1], slope = m1$coef[2], color = "Poisson"), show.legend = TRUE) +
+  scale_color_manual(values = c("blue", "red"), labels = c("Poisson", "Linear")) +
+  guides(color = guide_legend(title = "Model"))
+
+# Convert dd_out list to data frame
+dd_out_df <- as.data.frame(dd_out)
+
+# Fit linear regression model
+m0 <- lm(log(fd_out.Freq) ~ log(d_out), data = dd_out_df)
+# Fit Poisson regression model
+m1 <- glm(fd_out.Freq ~ log(d_out), family = poisson, data = dd_out_df)
+
+# Create scatter plot for out-degree distribution
+p2 <- ggplot(dd_out_df, aes(x = log(d_out), y = log(fd_out.Freq))) +
+  geom_point() +
+  labs(x = "Out-Degree", y = "Frequency") +
+  ggtitle("Out-Degree Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_abline(aes(intercept = m0$coef[1], slope = m0$coef[2], color = "Linear"), show.legend = TRUE) +
+  geom_abline(aes(intercept = m1$coef[1], slope = m1$coef[2], color = "Poisson"), show.legend = TRUE) +
+  scale_color_manual(values = c("blue", "red"), labels = c("Poisson", "Linear")) +
+  guides(color = guide_legend(title = "Model"))
+
+# Arrange plots in one window
+grid.arrange(p1, p2, nrow = 1)
+
+```
+
+It emerges that in both cases the Poisson regression model seems to follow better the data and to capture better the relationship between the degree and frequency of the degree distribution.
+
+#### 2.3  Weigths and Strength
+
+The weights in this network are represented by the rating assigned from the users which vary in the interval between "-10 and 10". The mean value of the weigths is $1.012$.
+
+```{r}
+# Assign weights to graph edges
+E(g)$weight <- data[, 3]
+
+# Calculate min, max, and mean weights
+min_weight <- min(E(g)$weight)
+max_weight <- max(E(g)$weight)
+mean_weight <- mean(E(g)$weight)
+
+# Print the results on the same line with labels
+cat("Minimum Weight:", min_weight, " | Maximum Weight:", max_weight, " | Mean Weight:", mean_weight, "\n")
+
+
+```
+
+
+
+```{r}
+# Create the histogram using ggplot
+ggplot(data = as.data.frame(E(g)$weight)) +
+  geom_histogram(aes(x = E(g)$weight), binwidth = 1, fill = "skyblue", color = "black") +
+  labs(x = "Weight", y = "Frequency", title = "Weight Distribution") +
+  theme_minimal()
+
+```
+
+It is shown that the percentage of positive edges is 89%.
+
+```{r}
+num_positive_edges <- sum(E(g)$weight > 0)
+num_negative_edges <- sum(E(g)$weight < 0)
+num_edges <- sum(num_positive_edges, num_negative_edges)
+percentage_positive_edges <- num_positive_edges / num_edges * 100
+
+cat("Number of Positive Edges:", num_positive_edges, " | Number of Negative Edges:", num_negative_edges, " | Percentage of Positive Edges:", round(percentage_positive_edges, 2), "\n")
+
+```
+
+Now the weights are rescaled from [-10,10] to [1,20] in order to have positive weights for the analysis that follows.
+```{r}
+new_min <- 1
+new_max <- 20
+
+rescale_weight <- function(w){
+  rescaled_w <- ((w - min_weight) / (max_weight - min_weight)) * (new_max - new_min) + new_min
+  return(rescaled_w)
+}
+
+original_weights <- E(g)$weight
+
+rescaled_weights <- rescale_weight(original_weights)
+
+E(g)$weight <- rescaled_weights
+```
+
+```{r}
+sort(unique(E(g)$weight))
+```
+
+
+An interesting network summary statistic is given by the strength of the network, in particular it make sense to set the "mode" parameter of the function = "in", in order to capture the strength of the nodes in terms of the incoming edges. This will provide a measure of the reputation of each user.
+
+```{r}
+trust_strength <- strength(g, mode = "in", weights = E(g)$weight)
+plot(trust_strength,
+     main = "Trust Strength for Each Node", xlab = "Node", ylab = "Trust Strenght")
+```
+
+
+The higher is the trust strength, the higher is the in-degree centrality. This means that users which are less trusted, hence worst rated, have fewer nodes interacting with them.
+
+Also considering the Out-Degree Centrality we can see the same pattern. Nodes with an higher trust strength have more outgoing edges, nodes with less trust strength have less outgoing edges. 
+
+A possible interpretation is that the nodes with bad ratings are less trusted and as a consequence have less interactions.
+
+```{r}
+library(ggplot2)
+
+in_degree <- degree(g, mode = "in")
+out_degree <- degree(g, mode = "out")
+
+# Create a data frame with trust_strength, in_degree, and out_degree
+trust_data <- data.frame(Trust_Strength = trust_strength,
+                         In_Degree = in_degree,
+                         Out_Degree = out_degree)
+
+# Create the scatter plots using ggplot
+plot_in_degree <- ggplot(trust_data, aes(x = Trust_Strength, y = In_Degree)) +
+  geom_point(color = "blue") +
+  labs(title = "Trust Strength vs In-Degree Centrality",
+       x = "Trust Strength", y = "In-Degree Centrality") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, margin = margin(b = 20)))
+
+plot_out_degree <- ggplot(trust_data, aes(x = Trust_Strength, y = Out_Degree)) +
+  geom_point(color = "red") +
+  labs(title = "Trust Strength vs Out-Degree Centrality",
+       x = "Trust Strength", y = "Out-Degree Centrality") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, margin = margin(b = 20)))
+
+# Arrange the plots in a grid
+gridExtra::grid.arrange(plot_in_degree, plot_out_degree, ncol = 2)
+
+```
+
+### 2.4 Important Users
+
+After summarizing the network, let's now identify important actors in it.
+Let's compute the **betweenness centrality** for each node in the network, considering the directed nature of the graph and using the weights assigned to the edges.
+
+The betweenness centrality of a node represents the extent to which that node lies on the shortest paths between other pairs of nodes in the network. It quantifies the influence or control a node has over the flow of information or transactions in the network.
+
+
+```{r}
+b <- betweenness(g, directed = TRUE, weights = E(g)$weight)
+
+# Create a layout with two plots in a single row
+par(mfrow = c(1, 2))
+
+# Plot 1: Betweenness Centrality
+plot(b, main = "Betweenness Centrality", xlab = "Node", ylab = "Betweenness")
+
+# Plot 2: Sorted Betweenness values
+plot(sort(b), main = "Sorted Betweenness Centrality", xlab = "Index", ylab = "Betweenness")
+
+```
+
+Let's plot the ego network of the most important vertex.
+```{r}
+ia <- order(b, decreasing = TRUE)[1]
+V(g)$name[ia]
+
+g1 <- subgraph.edges(g, E(g)[.inc(ia)])
+plot(g1, vertex.label= NA)
+```
+
+It is shown that this node other than being the most important user in the network has also a very high trust strength as well as in-degree and out-degree centrality.
+
+```{r}
+node_id <- "1810"
+
+trust_strength_value <- trust_strength[node_id]
+in_degree_value <- in_degree[node_id]
+out_degree_value <- out_degree[node_id]
+
+cat("Node Id:",node_id,"| Trust Strength",":", trust_strength_value, " | In-Degree Centrality for Node", ":", in_degree_value, " | Out-Degree Centrality:", out_degree_value)
+
+```
+
+
+Comparing the **Trust Strength** of each node vs the **Betweenness**, the general trend is that nodes with an high trust strength have an high betweenness. Although it emerges that a node in particular have an high betweenness even though it has a low trust strength.
+
+```{r}
+trust_betweenness <- data.frame(Trust_Strength = trust_strength, Betweenness = b, Node_Name = V(g)$name)
+
+ggplot(trust_betweenness, aes(x = Trust_Strength, y = Betweenness)) +
+  geom_jitter() +
+  labs(title = "Trust Strength vs Betweenness Centrality",
+       x = "Trust Strength",
+       y = "Betweenness") +
+  geom_text(aes(label = Node_Name), hjust = 0, vjust = 0, nudge_x = 0.1, nudge_y = 0.1) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, margin = margin(b = 20)))
+
+```
+
+By looking more closely to this node it can be seen that it has a very high betweenness, a relatively low trust strength as well as in-degree and out-degree centrality. Therefore it might be that this user is connecting different parts of the network through indirect paths and it's reputation is quite low.
+
+
+
+```{r}
+node_id2 <- "3744"
+
+cat("Node Id:",node_id2,"| Trust Strength",":", trust_strength[node_id2], " | In-Degree Centrality for Node", ":", in_degree[node_id2], " | Out-Degree Centrality:", out_degree[node_id2])
+
+```
+
+
+```{r}
+g1 <- subgraph.edges(g, E(g)[.inc(node_id2)])
+plot(g1, vertex.label= NA)
+```
+
+
+
+
 ### 3. Network Sampling
 
 ```{r echo=FALSE}
