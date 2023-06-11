@@ -1,6 +1,6 @@
 ---
 title: "Project"
-author: "Gabriele Cola - Nicholas LaRosa"
+author: "Gabriele Cola 5116782 - Nicolas Larosa 5111178"
 date: "2023-06-06"
 output: html_document
 ---
@@ -33,7 +33,7 @@ set.seed(20230605)
 This is who-trusts-whom network of people who trade using **Bitcoin** on a platform called **Bitcoin OTC**.\
 Since Bitcoin users are **anonymous**, there is a need to maintain a record of users' reputation to prevent transactions with fraudulent and risky users.\
 Members of Bitcoin Alpha rate other members in a scale of -10 (total distrust) to +10 (total trust) in steps of 1.\
-This is the **weighted signed directed network** and we took the [dataset](https://snap.stanford.edu/data/soc-sign-bitcoin-otc.html) from here
+This is the **weighted signed directed network** and we took the dataset from [here](https://snap.stanford.edu/data/soc-sign-bitcoin-otc.html) 
 
 #### 1.2 Description of features
 
@@ -89,39 +89,33 @@ ggplot(count_df, aes(x = Measure, y = Value, fill = Color)) +
 
 ```
 
-```{r warning= FALSE ,results='hide'}
-# Calculate weighted in-degree 
-degree <- strength(g, mode = "in")
+The objective of this analysis is to explore and investigate the observed pattern in order to gain a deeper understanding of its implications and underlying dynamics.
+This network reveals a notable pattern: users with a positive rating exhibit greater centrality within the graph, while users with negative ratings tend to occupy peripheral positions.
 
-# Create a data frame for plotting
-degree_df <- data.frame(Degree = degree)
 
-# Plot the degree distribution
-degree_in<- ggplot(degree_df, aes(x = Degree)) +
-  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
-  labs(x = "Degree", y = "Frequency", title = "Degree In Distribution") +
-  xlim(0,75)
-  theme_minimal()
-  
-  
-  
-# Calculate weighted out-degree
-degree2 <- strength(g, mode = "out")
+```{r warning=FALSE}
+# Set graphical parameters for the plot
+par(mar = c(5, 4, 1, 2) + 0.1, pin = c(4, 4))  # Increase the plot margins and size
 
-# Create a data frame for plotting
-degree_df_2 <- data.frame(Degree = degree2)
+E(g)$weight <- df$rating
+min_weight <- min(E(g)$weight)
+max_weight <- max(E(g)$weight)
+# Update the plot function with enlarged graph
+plot(g, edge.arrow.size = 0.2, vertex.label = NA, vertex.size = 2,
+     edge.width = abs(E(g)$weight - min_weight + 1) / (max_weight - min_weight + 1),
+     edge.color = ifelse(E(g)$weight > 0, "green", "red"),
+     layout = layout.auto)
 
-# Plot the degree distribution
-degree_out<- ggplot(degree_df_2, aes(x = Degree)) +
-  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
-  labs(x = "Degree", y = "", title = "Degree Out Distribution") +
-  xlim(0,75)
-  theme_minimal()
-  
-  
-# merging the two graphs
-degree_in + degree_out
+# Add a legend for edge color
+legend("topleft", legend = c("Positive", "Negative"), col = c("green", "red"),
+       pch = 20, cex = 0.8, bty = "n", title = "Edge Weight")
+
+# Add a main title to the plot
+title(main = "Bitcoin OTC Network")
+
 ```
+
+
 
 
 #### 2.1 In-Degree and Out-Degree Centrality
@@ -177,8 +171,6 @@ Regarding the out-degree distribution, a distinct pattern emerges. Nodes with a 
 A regression analysis is performed on the degree distribution data, in-degree and out-degree respectively.
 
 ```{r}
-library(gridExtra)
-
 # Convert dd_in list to data frame
 dd_in_df <- as.data.frame(dd_in)
 
@@ -196,7 +188,7 @@ p1 <- ggplot(dd_in_df, aes(x = log(d_in), y = log(fd_in.Freq))) +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_abline(aes(intercept = m0$coef[1], slope = m0$coef[2], color = "Linear"), show.legend = TRUE) +
   geom_abline(aes(intercept = m1$coef[1], slope = m1$coef[2], color = "Poisson"), show.legend = TRUE) +
-  scale_color_manual(values = c("blue", "red"), labels = c("Poisson", "Linear")) +
+  scale_color_manual(values = c("red", "blue"), labels = c("Linear", "Poisson")) +
   guides(color = guide_legend(title = "Model"))
 
 # Convert dd_out list to data frame
@@ -216,13 +208,14 @@ p2 <- ggplot(dd_out_df, aes(x = log(d_out), y = log(fd_out.Freq))) +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_abline(aes(intercept = m0$coef[1], slope = m0$coef[2], color = "Linear"), show.legend = TRUE) +
   geom_abline(aes(intercept = m1$coef[1], slope = m1$coef[2], color = "Poisson"), show.legend = TRUE) +
-  scale_color_manual(values = c("blue", "red"), labels = c("Poisson", "Linear")) +
+  scale_color_manual(values = c("red", "blue"), labels = c("Linear", "Poisson")) +
   guides(color = guide_legend(title = "Model"))
 
 # Arrange plots in one window
 grid.arrange(p1, p2, nrow = 1)
 
 ```
+
 
 It emerges that in both cases the Poisson regression model seems to follow better the data and to capture better the relationship between the degree and frequency of the degree distribution.
 
@@ -241,7 +234,6 @@ mean_weight <- mean(E(g)$weight)
 
 # Print the results on the same line with labels
 cat("Minimum Weight:", min_weight, " | Maximum Weight:", max_weight, " | Mean Weight:", mean_weight, "\n")
-
 
 ```
 
@@ -306,7 +298,6 @@ Also considering the Out-Degree Centrality we can see the same pattern. Nodes wi
 A possible interpretation is that the nodes with bad ratings are less trusted and as a consequence have less interactions.
 
 ```{r}
-library(ggplot2)
 
 in_degree <- degree(g, mode = "in")
 out_degree <- degree(g, mode = "out")
@@ -416,7 +407,6 @@ plot(g1, vertex.label= NA)
 
 
 
-
 ### 3. Network Sampling
 
 ```{r echo=FALSE}
@@ -446,9 +436,12 @@ abline(a =  m1$coef[1], b = m1$coef[2])
 ```
 
 
-We decided to apply **the induced subgraph sampling**, calculates the degree distributions of the original and subgraph, fits **GLMs** to both distributions, and creates a plot with the degree and frequency on logarithmic scales, along with lines representing the fitted models.
 
-```{r warning=FALSE}
+
+We decided to apply **the induced subgraph sampling** (for the sake of simplicity we consider an undirected Graph), calculates the degree distributions of the original and subgraph, fits **GLMs** to both distributions, and creates a plot with the degree and frequency on logarithmic scales, along with lines representing the fitted models.
+
+
+```{r}
 
 n_values <- c(500, 1000, 1500,2000)
 
@@ -481,7 +474,7 @@ plots <- lapply(n_values, function(n) {
     geom_point(shape = 19) +
     geom_abline(aes(intercept = intercept, slope = slope, linetype = graph), data = coefficients) +
     labs(x = "log(d)", y = "log(fd)", color = "Graph") +
-    ggtitle(paste("Degree Distribution n =", n, ""))+
+    ggtitle(paste(" Degree Distribution n =", n, ""))+
     theme(plot.title = element_text(size = 9))
   
   # Return the plot
@@ -491,12 +484,14 @@ plots <- lapply(n_values, function(n) {
 # Combine the plots in a 2x2 matrix
 # Display the combined plot
 plot_combined <- grid.arrange(grobs = plots, ncol = 2)
-
 ```
+
+
+
 
 We spot that the line of subgraph is **lower** than the line of original graph this is due to the count of degree, because it is reasonably that the subgraph has lower nodes than the original subgraph , but as we can expected when we increase `n`  tend to be almost the same .
 
-Furthermore, they are almost **parallel** so this means that we have a good estimates but we want to see the **variability** in the **sampling process**.
+Furthermore, they are almost **parallel** so this meansthat we have a good estimates but we want to see the **variability** in the **sampling process**.
 
 ```{r include=FALSE}
 ns<- 500
@@ -511,6 +506,7 @@ hist(s)
 abline(v= alpha_hat,col="red")
 
 ```
+
 
 ```{r warning=FALSE}
 
@@ -547,8 +543,10 @@ plot_combined <- grid.arrange(grobs = plots, ncol = 2)
 
 ```
 
+
+
 We can see that firstly it **overstimate** the values of coefficient in the subgraph , and then 
-when we increase `n` tend to be almost the exactly the same and tend to **understimate** a little bit the values.
+when we increase `n` tend to be almost the exactly the same and in last picture tend to **understimate** a little bit the values.
 
 
 ### 4. Community Detection
@@ -586,7 +584,9 @@ for (n in c(500, 1000)) {
 
 ```
 
-We can spot from the two graph, especially when `n` = 1000 , a community. Furthermore, we can see , as we expected when we increase `n` the modularity decrease.
+
+The visual analysis of the two graphs, particularly when `n` = 1000, reveals the detection of two distinct communities as anticipated. It can be inferred that one community, positioned more centrally, corresponds to the nodes with positive ratings, while the other community, located at the boundary, represents the nodes with more negative ratings.
+Furthermore, we can see, as we expected, that when we increase `n`, the modularity decrease.
 
 
 
