@@ -65,9 +65,7 @@ g<- graph_from_data_frame(df,directed=TRUE)
 
 ```
 
-
 ### 2. Exploratory Data Analysis
-
 
 ```{r}
 # Get the number of nodes and edges
@@ -90,8 +88,6 @@ ggplot(count_df, aes(x = Measure, y = Value, fill = Color)) +
   labs(fill = "Count")
 
 ```
-
-
 
 ```{r warning= FALSE ,results='hide'}
 # Calculate weighted in-degree 
@@ -127,13 +123,7 @@ degree_out<- ggplot(degree_df_2, aes(x = Degree)) +
 degree_in + degree_out
 ```
 
-
-
-
 ### 3. Network Sampling
-
-
-Overall, this code takes a graph, samples a subset of vertices, calculates the degree distributions of the original and subgraph, fits GLMs to both distributions, and creates a plot with the degree and frequency on logarithmic scales, along with lines representing the fitted models.
 
 ```{r echo=FALSE}
 # ***This function takes a graph g as input and calculates the degree distribution of the graph*** 
@@ -143,7 +133,6 @@ degree_dist <- function (g) {
   list(d = d, fd = fd) #  the function creates a list with two elements: f and d
 }
 ```
-
 
 ```{r include=FALSE}
 n <- 500
@@ -163,6 +152,7 @@ abline(a =  m1$coef[1], b = m1$coef[2])
 ```
 
 
+We decided to apply **the induced subgraph sampling**, calculates the degree distributions of the original and subgraph, fits **GLMs** to both distributions, and creates a plot with the degree and frequency on logarithmic scales, along with lines representing the fitted models.
 
 ```{r warning=FALSE}
 
@@ -210,11 +200,9 @@ plot_combined <- grid.arrange(grobs = plots, ncol = 2)
 
 ```
 
+We spot that the line of subgraph is **lower** than the line of original graph this is due to the count of degree, because it is reasonably that the subgraph has lower nodes than the original subgraph , but as we can expected when we increase `n`  tend to be almost the same .
 
-We can reasonably think that the line of subgraph is **lower** than the line of original graph because there is a count of degree.
-Furthermore, they are almost **parallel** so this means that we a good estimates of exponent, but we want to see the **variability** in the **sampling process**.
-
-
+Furthermore, they are almost **parallel** so this means that we have a good estimates but we want to see the **variability** in the **sampling process**.
 
 ```{r include=FALSE}
 ns<- 500
@@ -229,8 +217,6 @@ hist(s)
 abline(v= alpha_hat,col="red")
 
 ```
-
-
 
 ```{r warning=FALSE}
 
@@ -267,7 +253,8 @@ plot_combined <- grid.arrange(grobs = plots, ncol = 2)
 
 ```
 
-We can see when we increase n , firstly they over estimate the value and after understimate the values
+We can see that firstly it **overstimate** the values of coefficient in the subgraph , and then 
+when we increase `n` tend to be almost the exactly the same and tend to **understimate** a little bit the values.
 
 
 ### 4. Community Detection
@@ -276,22 +263,14 @@ When it comes to community detection in directed graphs, the Walktrap algorithm 
 
 The **Walktrap algorithm** offers an alternative approach that overcomes this limitation, allowing us to discover communities within directed graphs. By leveraging random walks on the graph, the Walktrap algorithm identifies densely connected regions that represent distinct communities.
 
-One crucial aspect of community detection is measuring the quality of identified communities. Modularity is a widely adopted metric for evaluating the strength of community structures. Modularity assesses the difference between the observed edge density within communities and the expected edge density in a random network. A higher modularity score indicates a more significant community structure.
+One crucial aspect of community detection is measuring the quality of identified communities. 
+**Modularity** is a widely adopted metric for evaluating the strength of community structures. 
+Modularity assesses the difference between the observed edge density within communities and the expected edge density in a random network.
 
-By employing the Walktrap algorithm, which is compatible with directed graphs, we can uncover communities in complex network structures, providing insights into relationships, information flow, and hierarchical organization. Additionally, evaluating the modularity of detected communities enables us to assess the significance and strength of community structures within the graph.
-
-
-
-Yes, it is normal for the modularity to decrease as the value of `n` increases in many cases. Modularity measures the quality of the community structure within a graph. It quantifies the degree to which the number of edges within communities exceeds the number of edges expected in a random graph with the same degree distribution.
-
-When the value of `n` increases, it implies that the subgraph being analyzed is larger and potentially more connected. As the subgraph becomes more connected, it may become more difficult to identify distinct communities, leading to a decrease in modularity.
-
-Additionally, the resolution of community detection algorithms can also play a role. Some algorithms, including the Walktrap algorithm, may struggle to identify smaller communities or fine-grained structures within larger and more densely connected graphs. This can result in a decrease in modularity as the graph size increases.
-
+We see that when we increase `n` , the modularity decrease. This is because as the **subgraph** becomes more connected, it may become more difficult to identify distinct communities.
 However, it's important to note that the relationship between modularity and graph size can vary depending on the specific characteristics of the graph, the community detection algorithm used, and the underlying community structure. So, while a decrease in modularity with increasing `n` is common, it may not hold true for all cases.
 
 ```{r}
-set.seed(1,2,3)
 # Set graphical parameters for the plot
 par(mfrow = c(1, 2), mar = c(5, 4, 1, 2) + 0.1)
 
@@ -314,7 +293,4 @@ for (n in c(500, 1000)) {
 ```
 
 
-
-
-
-
+We can spot from the two graph, especially when `n` = 1000 , a community. Furthermore, we can see , as we expected when we increase `n` the modularity decrease.
