@@ -7,13 +7,12 @@ output:
     keep_md: true
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 ### 0. Library
 
-```{r message=FALSE}
+
+```r
 library(tidyverse)
 library(igraph)
 library(sbm)
@@ -44,7 +43,8 @@ This is the **weighted signed directed network** and we took the dataset from [h
 -   **RATING**: the source's rating for the target, ranging from -10 to +10 in steps of 1
 -   **TIME**: the time of the rating, measured as seconds since Epoch.
 
-```{r}
+
+```r
 file_path <- "~/Downloads/newlab/Bitcoin_Network/soc-sign-bitcoinotc.csv"
 # Import the CSV file
 data <- read.csv(file_path, header = FALSE)
@@ -60,16 +60,47 @@ df <- data %>%
   mutate(time = as.POSIXct(TIME, origin = "1970-01-01")) %>% select(-TIME) %>% clean_names(case='snake')
 
 glimpse(df)
-summary(df)
+```
 
+```
+## Rows: 35,592
+## Columns: 4
+## $ source <int> 6, 6, 1, 4, 13, 13, 7, 2, 2, 21, 21, 21, 21, 21, 17, 17, 10, 10…
+## $ target <int> 2, 5, 15, 3, 16, 10, 5, 21, 20, 2, 1, 10, 8, 3, 3, 23, 1, 6, 21…
+## $ rating <int> 4, 2, 1, 7, 8, 8, 1, 5, 5, 5, 8, 8, 9, 7, 5, 1, 8, 7, 8, 1, 10,…
+## $ time   <dttm> 2010-11-08 19:45:11, 2010-11-08 19:45:41, 2010-11-08 20:05:40,…
+```
+
+```r
+summary(df)
+```
+
+```
+##      source         target         rating       
+##  Min.   :   1   Min.   :   1   Min.   :-10.000  
+##  1st Qu.: 988   1st Qu.: 978   1st Qu.:  1.000  
+##  Median :2125   Median :2178   Median :  1.000  
+##  Mean   :2354   Mean   :2417   Mean   :  1.012  
+##  3rd Qu.:3722   3rd Qu.:3804   3rd Qu.:  2.000  
+##  Max.   :6000   Max.   :6005   Max.   : 10.000  
+##       time                       
+##  Min.   :2010-11-08 19:45:11.73  
+##  1st Qu.:2012-03-08 22:47:10.07  
+##  Median :2013-01-17 02:06:14.49  
+##  Mean   :2012-12-17 03:23:47.47  
+##  3rd Qu.:2013-08-15 22:29:16.83  
+##  Max.   :2016-01-25 02:12:03.75
+```
+
+```r
 # Transform it to the graph
 g<- graph_from_data_frame(df,directed=TRUE)
-
 ```
 
 ### 2. Exploratory Data Analysis
 
-```{r}
+
+```r
 # Get the number of nodes and edges
 num_nodes <- vcount(g)
 num_edges <- ecount(g)
@@ -88,14 +119,16 @@ ggplot(count_df, aes(x = Measure, y = Value, fill = Color)) +
                     labels = count_df$Value) +
   scale_y_continuous(limits = c(0, 40000), breaks = seq(0, 40000, by = 5000))+
   labs(fill = "Count")
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 The objective of this analysis is to explore and investigate the observed pattern in order to gain a deeper understanding of its implications and underlying dynamics.
 This network reveals a notable pattern: users with a positive rating exhibit greater centrality within the graph, while users with negative ratings tend to occupy peripheral positions.
 
 
-```{r warning=FALSE}
+
+```r
 # Set graphical parameters for the plot
 par(mar = c(5, 4, 1, 2) + 0.1, pin = c(4, 4))  # Increase the plot margins and size
 
@@ -114,8 +147,9 @@ legend("topleft", legend = c("Positive", "Negative"), col = c("green", "red"),
 
 # Add a main title to the plot
 title(main = "Bitcoin OTC Network")
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 
 
@@ -128,23 +162,12 @@ In a directed network, the in-degree centrality and out-degree centrality measur
 
 \* **Out-Degree Centrality**: Out-Degree centrality measures the number of outgoing edges or connections that a node initiates towards other nodes in the network.
 
-```{r include=FALSE}
-in_degree_dist <- function (g) {
-  fd_in <- table(degree(g, mode = "in"))
-  d_in <- as.numeric(names(fd_in)) + 1 # degree + 1
-  list(d_in = d_in, fd_in = fd_in)
-}
-
-out_degree_dist <- function (g) {
-  fd_out <- table(degree(g, mode = "out"))
-  d_out <- as.numeric(names(fd_out)) + 1 # degree + 1
-  list(d_out = d_out, fd_out = fd_out)
-}
-```
 
 
 
-```{r}
+
+
+```r
 # Calculate in-degree and out-degree distributions
 dd_in <- in_degree_dist(g)
 dd_out <- out_degree_dist(g)
@@ -161,8 +184,9 @@ text(log(dd_in$d_in), log(dd_in$fd_in), labels = names(dd_in$fd_in), pos = 3)
 plot(log(dd_out$d_out), log(dd_out$fd_out), main = "Out-Degree Distribution",
      xlab = "Out-Degree", ylab = "Frequency")
 text(log(dd_out$d_out), log(dd_out$fd_out), labels = names(dd_out$fd_out), pos = 3)
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 In the case of the in-degree distribution, it is evident that nodes with a lower in-degree are more prevalent, while nodes with a higher in-degree are less common. Notably, an exception to this trend is observed for nodes with an in-degree of 0, which have a relatively low frequency.
 
@@ -172,7 +196,8 @@ Regarding the out-degree distribution, a distinct pattern emerges. Nodes with a 
 #### 2.2 Estimating Power Laws of Degree Centrality
 A regression analysis is performed on the degree distribution data, in-degree and out-degree respectively.
 
-```{r}
+
+```r
 # Convert dd_in list to data frame
 dd_in_df <- as.data.frame(dd_in)
 
@@ -215,8 +240,9 @@ p2 <- ggplot(dd_out_df, aes(x = log(d_out), y = log(fd_out.Freq))) +
 
 # Arrange plots in one window
 grid.arrange(p1, p2, nrow = 1)
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 
 It emerges that in both cases the Poisson regression model seems to follow better the data and to capture better the relationship between the degree and frequency of the degree distribution.
@@ -225,7 +251,8 @@ It emerges that in both cases the Poisson regression model seems to follow bette
 
 The weights in this network are represented by the rating assigned from the users which vary in the interval between "-10 and 10". The mean value of the weigths is $1.012$.
 
-```{r}
+
+```r
 # Assign weights to graph edges
 E(g)$weight <- data[, 3]
 
@@ -236,34 +263,44 @@ mean_weight <- mean(E(g)$weight)
 
 # Print the results on the same line with labels
 cat("Minimum Weight:", min_weight, " | Maximum Weight:", max_weight, " | Mean Weight:", mean_weight, "\n")
+```
 
+```
+## Minimum Weight: -10  | Maximum Weight: 10  | Mean Weight: 1.012025
 ```
 
 
 
-```{r}
+
+```r
 # Create the histogram using ggplot
 ggplot(data = as.data.frame(E(g)$weight)) +
   geom_histogram(aes(x = E(g)$weight), binwidth = 1, fill = "skyblue", color = "black") +
   labs(x = "Weight", y = "Frequency", title = "Weight Distribution") +
   theme_minimal()
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 It is shown that the percentage of positive edges is 89%.
 
-```{r}
+
+```r
 num_positive_edges <- sum(E(g)$weight > 0)
 num_negative_edges <- sum(E(g)$weight < 0)
 num_edges <- sum(num_positive_edges, num_negative_edges)
 percentage_positive_edges <- num_positive_edges / num_edges * 100
 
 cat("Number of Positive Edges:", num_positive_edges, " | Number of Negative Edges:", num_negative_edges, " | Percentage of Positive Edges:", round(percentage_positive_edges, 2), "\n")
+```
 
+```
+## Number of Positive Edges: 32029  | Number of Negative Edges: 3563  | Percentage of Positive Edges: 89.99
 ```
 
 Now the weights are rescaled from [-10,10] to [1,20] in order to have positive weights for the analysis that follows.
-```{r}
+
+```r
 new_min <- 1
 new_max <- 20
 
@@ -279,18 +316,27 @@ rescaled_weights <- rescale_weight(original_weights)
 E(g)$weight <- rescaled_weights
 ```
 
-```{r}
+
+```r
 sort(unique(E(g)$weight))
+```
+
+```
+##  [1]  1.00  1.95  2.90  3.85  4.80  5.75  6.70  7.65  8.60  9.55 11.45 12.40
+## [13] 13.35 14.30 15.25 16.20 17.15 18.10 19.05 20.00
 ```
 
 
 An interesting network summary statistic is given by the strength of the network, in particular it make sense to set the "mode" parameter of the function = "in", in order to capture the strength of the nodes in terms of the incoming edges. This will provide a measure of the reputation of each user.
 
-```{r}
+
+```r
 trust_strength <- strength(g, mode = "in", weights = E(g)$weight)
 plot(trust_strength,
      main = "Trust Strength for Each Node", xlab = "Node", ylab = "Trust Strenght")
 ```
+
+![](Project_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 
 The higher is the trust strength, the higher is the in-degree centrality. This means that users which are less trusted, hence worst rated, have fewer nodes interacting with them.
@@ -299,8 +345,8 @@ Also considering the Out-Degree Centrality we can see the same pattern. Nodes wi
 
 A possible interpretation is that the nodes with bad ratings are less trusted and as a consequence have less interactions.
 
-```{r}
 
+```r
 in_degree <- degree(g, mode = "in")
 out_degree <- degree(g, mode = "out")
 
@@ -326,8 +372,9 @@ plot_out_degree <- ggplot(trust_data, aes(x = Trust_Strength, y = Out_Degree)) +
 
 # Arrange the plots in a grid
 gridExtra::grid.arrange(plot_in_degree, plot_out_degree, ncol = 2)
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 #### 2.4 Important Users
 
@@ -337,7 +384,8 @@ Let's compute the **betweenness centrality** for each node in the network, consi
 The betweenness centrality of a node represents the extent to which that node lies on the shortest paths between other pairs of nodes in the network. It quantifies the influence or control a node has over the flow of information or transactions in the network.
 
 
-```{r}
+
+```r
 b <- betweenness(g, directed = TRUE, weights = E(g)$weight)
 
 # Create a layout with two plots in a single row
@@ -348,21 +396,32 @@ plot(b, main = "Betweenness Centrality", xlab = "Node", ylab = "Betweenness")
 
 # Plot 2: Sorted Betweenness values
 plot(sort(b), main = "Sorted Betweenness Centrality", xlab = "Index", ylab = "Betweenness")
-
 ```
 
+![](Project_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+
 Let's plot the ego network of the most important vertex.
-```{r}
+
+```r
 ia <- order(b, decreasing = TRUE)[1]
 V(g)$name[ia]
+```
 
+```
+## [1] "1810"
+```
+
+```r
 g1 <- subgraph.edges(g, E(g)[.inc(ia)])
 plot(g1, vertex.label= NA)
 ```
 
+![](Project_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
 It is shown that this node other than being the most important user in the network has also a very high trust strength as well as in-degree and out-degree centrality.
 
-```{r}
+
+```r
 node_id <- "1810"
 
 trust_strength_value <- trust_strength[node_id]
@@ -370,13 +429,17 @@ in_degree_value <- in_degree[node_id]
 out_degree_value <- out_degree[node_id]
 
 cat("Node Id:",node_id,"| Trust Strength",":", trust_strength_value, " | In-Degree Centrality for Node", ":", in_degree_value, " | Out-Degree Centrality:", out_degree_value)
+```
 
+```
+## Node Id: 1810 | Trust Strength : 3484  | In-Degree Centrality for Node : 311  | Out-Degree Centrality: 404
 ```
 
 
 Comparing the **Trust Strength** of each node vs the **Betweenness**, the general trend is that nodes with an high trust strength have an high betweenness. Although it emerges that a node in particular have an high betweenness even though it has a low trust strength.
 
-```{r}
+
+```r
 trust_betweenness <- data.frame(Trust_Strength = trust_strength, Betweenness = b, Node_Name = V(g)$name)
 
 ggplot(trust_betweenness, aes(x = Trust_Strength, y = Betweenness)) +
@@ -387,55 +450,41 @@ ggplot(trust_betweenness, aes(x = Trust_Strength, y = Betweenness)) +
   geom_text(aes(label = Node_Name), hjust = 0, vjust = 0, nudge_x = 0.1, nudge_y = 0.1) +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, margin = margin(b = 20)))
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
 By looking more closely to this node it can be seen that it has a very high betweenness, a relatively low trust strength as well as in-degree and out-degree centrality. Therefore it might be that this user is connecting different parts of the network through indirect paths and it's reputation is quite low.
 
 
 
-```{r}
+
+```r
 node_id2 <- "3744"
 
 cat("Node Id:",node_id2,"| Trust Strength",":", trust_strength[node_id2], " | In-Degree Centrality for Node", ":", in_degree[node_id2], " | Out-Degree Centrality:", out_degree[node_id2])
+```
 
+```
+## Node Id: 3744 | Trust Strength : 209.25  | In-Degree Centrality for Node : 81  | Out-Degree Centrality: 32
 ```
 
 
-```{r}
+
+```r
 g1 <- subgraph.edges(g, E(g)[.inc(node_id2)])
 plot(g1, vertex.label= NA)
 ```
+
+![](Project_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
 
 
 
 ### 3. Network Sampling
 
-```{r echo=FALSE}
-# ***This function takes a graph g as input and calculates the degree distribution of the graph*** 
-degree_dist <- function (g) {
-  fd <- table(degree(g)) # This line calculates the frequency of each degree in the graph
-  d <- as.numeric(names(fd)) + 1 # degree + 1
-  list(d = d, fd = fd) #  the function creates a list with two elements: f and d
-}
-```
-
-```{r include=FALSE}
-n <- 500
-gs <- induced_subgraph(g, sample(V(g), n))
-
-dd0 <- degree_dist(g)
-m0 <- glm(fd~ log(d), family = poisson, data = dd0)
-with(dd0, plot(log(d), log(fd)));
-abline(a =  m0$coef[1], b = m0$coef[2])
 
 
-dd1 <- degree_dist(gs)
-m1 <- glm(fd~ log(d), family = poisson, data = dd1)
-with(dd1, points(log(d), log(fd),pch=19));
-abline(a =  m1$coef[1], b = m1$coef[2])
 
-```
 
 
 
@@ -443,8 +492,8 @@ abline(a =  m1$coef[1], b = m1$coef[2])
 We decided to apply **the induced subgraph sampling** (for the sake of simplicity we consider an undirected Graph), calculates the degree distributions of the original and subgraph, fits **GLMs** to both distributions, and creates a plot with the degree and frequency on logarithmic scales, along with lines representing the fitted models.
 
 
-```{r}
 
+```r
 n_values <- c(500, 1000, 1500,2000)
 
 plots <- lapply(n_values, function(n) {
@@ -488,6 +537,8 @@ plots <- lapply(n_values, function(n) {
 plot_combined <- grid.arrange(grobs = plots, ncol = 2)
 ```
 
+![](Project_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
+
 
 
 
@@ -495,23 +546,11 @@ We spot that the line of subgraph is **lower** than the line of original graph t
 
 Furthermore, they are almost **parallel** so this meansthat we have a good estimates but we want to see the **variability** in the **sampling process**.
 
-```{r include=FALSE}
-ns<- 500
-s<- replicate(ns, {
-  dd <- degree_dist(induced_subgraph(g,sample(V(g),n)))
-  -glm(fd ~ log(d),family= poisson,data= dd)$coef[2]
-  
-})
-
-alpha_hat<- -m0$coef[2]
-hist(s)
-abline(v= alpha_hat,col="red")
-
-```
 
 
-```{r warning=FALSE}
 
+
+```r
 n_values <- c(500, 1000, 1500, 2000)
 
 plots <- lapply(n_values, function(n) {
@@ -541,9 +580,9 @@ plots <- lapply(n_values, function(n) {
 # Combine the plots in a 2x2 matrix
 # Display the combined plot
 plot_combined <- grid.arrange(grobs = plots, ncol = 2)
-
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 
 
 
@@ -564,7 +603,8 @@ Modularity assesses the difference between the observed edge density within comm
 We see that when we increase `n` , the modularity decrease. This is because as the **subgraph** becomes more connected, it may become more difficult to identify distinct communities.
 However, it's important to note that the relationship between modularity and graph size can vary depending on the specific characteristics of the graph, the community detection algorithm used, and the underlying community structure. So, while a decrease in modularity with increasing `n` is common, it may not hold true for all cases.
 
-```{r}
+
+```r
 # Set graphical parameters for the plot
 par(mfrow = c(1, 2), mar = c(5, 4, 1, 2) + 0.1)
 
@@ -583,8 +623,9 @@ for (n in c(500, 1000)) {
   plot_title <- paste("n =", n, "   Modularity =", round(mod, 2))
   plot(community, gs, vertex.label = NA, vertex.size = 5, layout = layout_with_fr, main = plot_title)
 }
-
 ```
+
+![](Project_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
 
 
 The visual analysis of the two graphs, particularly when `n` = 1000, reveals the detection of two distinct communities as anticipated. It can be inferred that one community, positioned more centrally, corresponds to the nodes with positive ratings, while the other community, located at the boundary, represents the nodes with more negative ratings.
