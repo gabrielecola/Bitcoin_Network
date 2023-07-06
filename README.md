@@ -13,8 +13,10 @@
 ### Bitcoin Network
 
 This is who-trusts-whom network of people who trade using Bitcoin on a platform called Bitcoin OTC.
-Since Bitcoin users are anonymous, there is a need to maintain a record of users’ reputation to prevent transactions with fraudulent and risky users.
-Members of Bitcoin Alpha rate other members in a scale of -10 (total distrust) to +10 (total trust) in steps of 1.
+Since Bitcoin users are anonymous, there is a need to maintain a record of users’ reputation to prevent transactions with fraudulent and risky users. \
+
+Members of Bitcoin Alpha rate other members in a scale of -10 (total distrust) to +10 (total trust) in steps of 1.\ 
+
 This is the **weighted signed directed network**.
 
 ### 1. Problem Statement
