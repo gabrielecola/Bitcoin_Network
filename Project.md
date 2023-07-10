@@ -45,7 +45,7 @@ This is the **weighted signed directed network** and we took the dataset from [h
 
 
 ```r
-file_path <- "~/Downloads/newlab/Bitcoin_Network/soc-sign-bitcoinotc.csv"
+file_path <- "/Users/gabrielecola/Downloads/newlab/Bitcoin_Network/Dataset/soc-sign-bitcoinotc.csv"
 # Import the CSV file
 data <- read.csv(file_path, header = FALSE)
 
