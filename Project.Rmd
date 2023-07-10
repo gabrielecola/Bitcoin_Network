@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### 0. Libraries
+### 0. Library
 
 ```{r message=FALSE}
 library(tidyverse)
