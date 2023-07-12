@@ -9,7 +9,7 @@ output:
 
 
 
-### 0. Libraries
+### 0. Library
 
 
 ```r
