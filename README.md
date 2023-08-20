@@ -1,4 +1,5 @@
 ## Bitcoin Network
+For the report click :point_right: [here](https://github.com/gabrielecola/Bitcoin_Network/blob/main/Project.md)
 
 ## Table of Contents
 
@@ -23,7 +24,7 @@ This is the **weighted signed directed network**.
 Indentify the communities in the Bitcoin transaction
 
 ### 2. Data Description
-Data is obtained from  [here](https://snap.stanford.edu/data/soc-sign-bitcoin-otc.html).
+Data is obtained from  [Snap Standford](https://snap.stanford.edu/data/soc-sign-bitcoin-otc.html).
 
 - Number of instances - 35,592
 - Number of features - 4
